@@ -1,6 +1,7 @@
 // Hizjaab — Product Research & Customer Insight Platform
-// Datasource is SQLite for local/preview use. Switch provider to "mysql" or
-// "postgresql" and update DATABASE_URL to move to production.
+// Datasource is PostgreSQL (Prisma Postgres / Neon / Vercel Postgres compatible).
+// The connection URL is supplied at runtime via DATABASE_URL (prisma.config.ts
+// for CLI/migrate, @prisma/adapter-pg for the app — see app/lib/prisma.ts).
 
 generator client {
   provider = "prisma-client"
@@ -8,7 +9,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 model Admin {

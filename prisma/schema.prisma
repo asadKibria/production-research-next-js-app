@@ -1,0 +1,138 @@
+// Hizjaab — Product Research & Customer Insight Platform
+// Datasource is SQLite for local/preview use. Switch provider to "mysql" or
+// "postgresql" and update DATABASE_URL to move to production.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Admin {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Product {
+  id           String             @id @default(cuid())
+  title        String
+  description  String?
+  image        String?
+  isActive     Boolean            @default(true)
+  displayOrder Int                @default(0)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  questions    ProductQuestion[]
+  responses    Response[]
+
+  @@index([isActive, displayOrder])
+}
+
+enum QuestionType {
+  multiple_choice
+  checkbox
+  text
+  rating
+  price_opinion
+  purchase_intent
+}
+
+model QuestionTemplate {
+  id           String       @id @default(cuid())
+  questionText String
+  questionType QuestionType
+  options      String?
+  displayOrder Int          @default(0)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([displayOrder])
+}
+
+model ProductQuestion {
+  id            String           @id @default(cuid())
+  productId     String
+  product       Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  questionText  String
+  questionType  QuestionType
+  options       String?
+  questionImage String?
+  displayOrder  Int              @default(0)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  answers       ResponseAnswer[]
+
+  @@index([productId, displayOrder])
+}
+
+enum Gender {
+  male
+  female
+  other
+}
+
+model Customer {
+  id            String     @id @default(cuid())
+  sessionToken  String     @unique
+  fullName      String
+  district      String
+  residenceType String
+  age           String
+  gender        Gender
+  profession    String
+  mobileNumber  String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  responses     Response[]
+
+  @@index([mobileNumber])
+}
+
+enum ResponseStatus {
+  draft
+  completed
+}
+
+model Response {
+  id          String           @id @default(cuid())
+  customerId  String
+  customer    Customer         @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  status      ResponseStatus   @default(draft)
+  currentStep Int              @default(1)
+  completedAt DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  answers     ResponseAnswer[]
+
+  @@unique([customerId, productId])
+  @@index([productId, status])
+}
+
+model ResponseAnswer {
+  id                String          @id @default(cuid())
+  responseId        String
+  response          Response        @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  productQuestionId String
+  productQuestion   ProductQuestion @relation(fields: [productQuestionId], references: [id], onDelete: Cascade)
+  answerValue       String?
+  rating            Int?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@unique([responseId, productQuestionId])
+}
+
+model Announcement {
+  id        String   @id @default(cuid())
+  message   String
+  isActive  Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+}

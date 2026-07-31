@@ -57,7 +57,15 @@ const PRODUCTS = [
 ];
 
 async function main() {
-  const passwordHash = await bcrypt.hash("admin123", 10);
+  // Never hardcode the admin password: this repository is public and the admin
+  // login is reachable from the internet. Supply it via the environment.
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  if (!adminPassword) {
+    throw new Error(
+      "ADMIN_PASSWORD is not set. Add it to .env (or pass it inline) before seeding.",
+    );
+  }
+  const passwordHash = await bcrypt.hash(adminPassword, 12);
   await prisma.admin.upsert({
     where: { username: "admin" },
     update: {},

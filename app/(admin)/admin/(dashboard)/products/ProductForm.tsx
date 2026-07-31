@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import Image from "next/image";
+import { ImageUploadField } from "@/app/components/ImageUploadField";
 import type { ProductFormState } from "@/app/lib/actions/product";
 
 type Action = (state: ProductFormState, formData: FormData) => Promise<ProductFormState>;
@@ -58,12 +58,7 @@ export function ProductForm({
       </label>
 
       <Field label="ছবি" error={undefined}>
-        {initial?.image ? (
-          <div className="relative mb-2 h-24 w-24 overflow-hidden rounded-xl">
-            <Image src={initial.image} alt="" fill sizes="96px" className="object-cover" />
-          </div>
-        ) : null}
-        <input name="image" type="file" accept="image/*" className="text-sm text-ink-700" />
+        <ImageUploadField name="image" currentImage={initial?.image} />
       </Field>
 
       <button

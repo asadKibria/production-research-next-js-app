@@ -2,7 +2,9 @@ import "server-only";
 import { prisma } from "@/app/lib/prisma";
 
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
-const MAX_SIZE_BYTES = 5 * 1024 * 1024;
+// Must stay below next.config.ts's serverActions.bodySizeLimit, otherwise the
+// request is rejected with a bare 413 before this check can report anything.
+const MAX_SIZE_BYTES = 3.5 * 1024 * 1024;
 
 /**
  * Persists an admin-uploaded image and returns the public URL that serves it.
@@ -16,7 +18,7 @@ export async function saveUploadedImage(file: File): Promise<string> {
     throw new Error("অসমর্থিত ছবির ফরম্যাট (jpg, png, webp, gif সমর্থিত)");
   }
   if (file.size > MAX_SIZE_BYTES) {
-    throw new Error("ছবির সাইজ ৫MB এর কম হতে হবে");
+    throw new Error("ছবির সাইজ ৩.৫MB এর কম হতে হবে");
   }
 
   const bytes = new Uint8Array(await file.arrayBuffer());

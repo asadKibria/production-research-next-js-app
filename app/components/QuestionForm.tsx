@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import Image from "next/image";
+import { ImageUploadField } from "@/app/components/ImageUploadField";
 import type { QuestionFormState } from "@/app/lib/actions/question";
 import { getChoiceOptions, getPriceOpinionRange } from "@/app/lib/question-options";
 
@@ -108,12 +108,11 @@ export function QuestionForm({
 
       {showImageUpload ? (
         <Field label="প্রশ্নের ছবি (ঐচ্ছিক, না দিলে প্রোডাক্টের মূল ছবি দেখাবে)">
-          {initial?.questionImage ? (
-            <div className="relative mb-2 h-20 w-32 overflow-hidden rounded-xl">
-              <Image src={initial.questionImage} alt="" fill sizes="128px" className="object-cover" />
-            </div>
-          ) : null}
-          <input name="questionImage" type="file" accept="image/*" className="text-sm text-ink-700" />
+          <ImageUploadField
+            name="questionImage"
+            currentImage={initial?.questionImage}
+            previewClassName="h-20 w-32"
+          />
         </Field>
       ) : null}
 

@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/app/lib/prisma";
 import { getCurrentCustomer } from "@/app/lib/customer-session";
 
@@ -98,6 +99,9 @@ export async function submitResponse(responseId: string): Promise<SubmitResult> 
     where: { id: responseId },
     data: { status: "completed", completedAt: new Date() },
   });
+
+  // The home page caches the live participant count.
+  revalidatePath("/");
 
   return { ok: true };
 }

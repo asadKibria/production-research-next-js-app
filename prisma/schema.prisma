@@ -131,6 +131,17 @@ model ResponseAnswer {
   @@unique([responseId, productQuestionId])
 }
 
+/// Admin-uploaded images. Stored in the database rather than on disk because
+/// serverless hosts (Vercel) have a read-only, ephemeral filesystem — anything
+/// written to public/uploads at runtime fails or disappears on the next deploy.
+model UploadedImage {
+  id        String   @id @default(cuid())
+  mimeType  String
+  byteSize  Int
+  data      Bytes
+  createdAt DateTime @default(now())
+}
+
 model Announcement {
   id        String   @id @default(cuid())
   message   String

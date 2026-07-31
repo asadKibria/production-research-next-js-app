@@ -24,6 +24,12 @@ export function ResponseFilterForm({
         ))}
       </select>
 
+      <select name="status" defaultValue={initial.status ?? "completed"} className="input">
+        <option value="completed">শুধু সম্পন্ন</option>
+        <option value="all">সব (অসম্পূর্ণসহ)</option>
+        <option value="draft">শুধু অসম্পূর্ণ</option>
+      </select>
+
       <select name="gender" defaultValue={initial.gender ?? ""} className="input">
         <option value="">সব লিঙ্গ</option>
         <option value="male">পুরুষ</option>

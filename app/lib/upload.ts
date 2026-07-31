@@ -1,26 +1,17 @@
 import "server-only";
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
-import crypto from "node:crypto";
+import { prisma } from "@/app/lib/prisma";
 
-const UPLOAD_ROOT = path.join(process.cwd(), "public", "uploads");
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 const MAX_SIZE_BYTES = 5 * 1024 * 1024;
 
-function extensionForType(type: string): string {
-  switch (type) {
-    case "image/png":
-      return ".png";
-    case "image/webp":
-      return ".webp";
-    case "image/gif":
-      return ".gif";
-    default:
-      return ".jpg";
-  }
-}
-
-export async function saveUploadedImage(file: File, subdir: string): Promise<string> {
+/**
+ * Persists an admin-uploaded image and returns the public URL that serves it.
+ *
+ * Images go into Postgres instead of `public/uploads` because Vercel's
+ * filesystem is read-only at runtime: writing there throws EROFS in production
+ * and, even where it succeeds, the file is gone after the next deploy.
+ */
+export async function saveUploadedImage(file: File): Promise<string> {
   if (!ALLOWED_TYPES.has(file.type)) {
     throw new Error("অসমর্থিত ছবির ফরম্যাট (jpg, png, webp, gif সমর্থিত)");
   }
@@ -28,11 +19,12 @@ export async function saveUploadedImage(file: File, subdir: string): Promise<str
     throw new Error("ছবির সাইজ ৫MB এর কম হতে হবে");
   }
 
-  const bytes = Buffer.from(await file.arrayBuffer());
-  const filename = `${crypto.randomUUID()}${extensionForType(file.type)}`;
-  const dir = path.join(UPLOAD_ROOT, subdir);
-  await mkdir(dir, { recursive: true });
-  await writeFile(path.join(dir, filename), bytes);
+  const bytes = new Uint8Array(await file.arrayBuffer());
 
-  return `/uploads/${subdir}/${filename}`;
+  const record = await prisma.uploadedImage.create({
+    data: { mimeType: file.type, byteSize: bytes.byteLength, data: bytes },
+    select: { id: true },
+  });
+
+  return `/api/images/${record.id}`;
 }

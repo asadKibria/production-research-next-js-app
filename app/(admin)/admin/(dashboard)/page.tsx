@@ -28,7 +28,11 @@ export default async function AdminDashboardPage() {
           icon={<UsersIcon />}
           label="মোট রেসপন্স"
           value={String(data.totalResponsesCount)}
-          hint="সব প্রোডাক্ট মিলিয়ে"
+          hint={
+            data.inProgressResponsesCount > 0
+              ? `+${data.inProgressResponsesCount}টি অসম্পূর্ণ • ${data.registeredCustomersCount} জন কাস্টমার`
+              : `${data.registeredCustomersCount} জন কাস্টমার`
+          }
         />
         <KpiCard
           icon={<StarIcon />}

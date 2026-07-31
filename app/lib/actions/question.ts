@@ -107,7 +107,7 @@ export async function createProductQuestion(
   const imageFile = formData.get("questionImage");
   if (imageFile instanceof File && imageFile.size > 0) {
     try {
-      questionImage = await saveUploadedImage(imageFile, "questions");
+      questionImage = await saveUploadedImage(imageFile);
     } catch (e) {
       return { error: e instanceof Error ? e.message : "ছবি আপলোড ব্যর্থ হয়েছে", fieldErrors: {} };
     }
@@ -138,7 +138,7 @@ export async function updateProductQuestion(
   const imageFile = formData.get("questionImage");
   if (imageFile instanceof File && imageFile.size > 0) {
     try {
-      questionImage = await saveUploadedImage(imageFile, "questions");
+      questionImage = await saveUploadedImage(imageFile);
     } catch (e) {
       return { error: e instanceof Error ? e.message : "ছবি আপলোড ব্যর্থ হয়েছে", fieldErrors: {} };
     }

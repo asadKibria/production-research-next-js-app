@@ -14,9 +14,17 @@ function startOfWeek(d: Date): Date {
 }
 
 export async function getInsightsData() {
-  const [totalProductsCount, totalResponsesCount, completedResponses] = await Promise.all([
+  const [
+    totalProductsCount,
+    totalResponsesCount,
+    inProgressResponsesCount,
+    registeredCustomersCount,
+    completedResponses,
+  ] = await Promise.all([
     prisma.product.count(),
     prisma.response.count({ where: { status: "completed" } }),
+    prisma.response.count({ where: { status: "draft" } }),
+    prisma.customer.count(),
     prisma.response.findMany({
       where: { status: "completed" },
       include: {
@@ -188,6 +196,8 @@ export async function getInsightsData() {
   return {
     totalProductsCount,
     totalResponsesCount,
+    inProgressResponsesCount,
+    registeredCustomersCount,
     totalCustomersCount: seenCustomers.size,
     averageRating: ratingCount > 0 ? ratingSum / ratingCount : 0,
     productRanking,

@@ -75,6 +75,7 @@ export default async function AdminResponsesPage({
               <th className="px-4 py-3">লিঙ্গ</th>
               <th className="px-4 py-3">পেশা</th>
               <th className="px-4 py-3">গড় রেটিং</th>
+              <th className="px-4 py-3">অবস্থা</th>
               <th className="px-4 py-3">সম্পন্ন</th>
               <th className="px-4 py-3" />
             </tr>
@@ -94,6 +95,17 @@ export default async function AdminResponsesPage({
                 </td>
                 <td className="px-4 py-3 text-ink-700">{response.customer.profession}</td>
                 <td className="px-4 py-3 text-ink-700">{avgRating ? avgRating.toFixed(2) : "—"}</td>
+                <td className="px-4 py-3">
+                  {response.status === "completed" ? (
+                    <span className="whitespace-nowrap rounded-full bg-plum-900/10 px-2.5 py-1 text-xs font-medium text-plum-900">
+                      সম্পন্ন
+                    </span>
+                  ) : (
+                    <span className="whitespace-nowrap rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800">
+                      অসম্পূর্ণ
+                    </span>
+                  )}
+                </td>
                 <td className="px-4 py-3 text-ink-700">
                   {response.completedAt ? new Date(response.completedAt).toLocaleDateString("bn-BD") : "—"}
                 </td>
@@ -120,7 +132,7 @@ export default async function AdminResponsesPage({
             ))}
             {result.items.length === 0 ? (
               <tr>
-                <td colSpan={10} className="px-4 py-8 text-center text-sm text-ink-700">
+                <td colSpan={11} className="px-4 py-8 text-center text-sm text-ink-700">
                   কোনো রেসপন্স পাওয়া যায়নি
                 </td>
               </tr>

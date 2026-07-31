@@ -82,6 +82,9 @@ export const responseFilterSchema = z.object({
   residenceType: z.string().optional(),
   minAvgRating: z.coerce.number().min(1).max(5).optional(),
   purchaseIntent: z.string().optional(),
+  // "completed" (default) hides half-finished submissions; "all"/"draft" expose
+  // customers who started but never reached the final step.
+  status: z.enum(["completed", "draft", "all"]).optional(),
   dateFrom: z.string().optional(),
   dateTo: z.string().optional(),
   page: z.coerce.number().int().min(1).default(1),

@@ -13,12 +13,15 @@ export type ResponseFilters = {
   purchaseIntent?: string;
   dateFrom?: string;
   dateTo?: string;
+  status?: "completed" | "draft" | "all";
 };
 
 const PAGE_SIZE = 20;
 
 async function getFilteredResponses(filters: ResponseFilters) {
-  const where: Prisma.ResponseWhereInput = { status: "completed" };
+  const statusFilter = filters.status ?? "completed";
+  const where: Prisma.ResponseWhereInput =
+    statusFilter === "all" ? {} : { status: statusFilter };
 
   if (filters.productId) where.productId = filters.productId;
 
@@ -31,10 +34,13 @@ async function getFilteredResponses(filters: ResponseFilters) {
   if (Object.keys(customerWhere).length > 0) where.customer = customerWhere;
 
   if (filters.dateFrom || filters.dateTo) {
-    where.completedAt = {
+    const range = {
       ...(filters.dateFrom ? { gte: new Date(filters.dateFrom) } : {}),
       ...(filters.dateTo ? { lte: new Date(`${filters.dateTo}T23:59:59.999Z`) } : {}),
     };
+    // Drafts have no completedAt, so range-filter them by when they started.
+    if (statusFilter === "completed") where.completedAt = range;
+    else where.createdAt = range;
   }
 
   const responses = await prisma.response.findMany({
@@ -44,7 +50,8 @@ async function getFilteredResponses(filters: ResponseFilters) {
       product: { select: { id: true, title: true } },
       answers: { include: { productQuestion: true } },
     },
-    orderBy: { completedAt: "desc" },
+    // Latest activity first — works for drafts (no completedAt) too.
+    orderBy: { updatedAt: "desc" },
   });
 
   const enriched = responses.map((r) => {

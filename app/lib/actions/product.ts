@@ -18,6 +18,13 @@ function parseProductForm(formData: FormData) {
   });
 }
 
+/** The admin list plus every public surface that renders the product catalog. */
+function revalidateProductSurfaces() {
+  revalidatePath("/admin/products");
+  revalidatePath("/");
+  revalidatePath("/survey/products");
+}
+
 function fieldErrorsFrom(issues: { path: PropertyKey[]; message: string }[]) {
   const fieldErrors: Record<string, string> = {};
   for (const issue of issues) {
@@ -42,7 +49,7 @@ export async function createProduct(
   let imagePath: string | null = null;
   if (imageFile instanceof File && imageFile.size > 0) {
     try {
-      imagePath = await saveUploadedImage(imageFile, "products");
+      imagePath = await saveUploadedImage(imageFile);
     } catch (e) {
       return { error: e instanceof Error ? e.message : "ছবি আপলোড ব্যর্থ হয়েছে", fieldErrors: {} };
     }
@@ -68,7 +75,7 @@ export async function createProduct(
     },
   });
 
-  revalidatePath("/admin/products");
+  revalidateProductSurfaces();
   redirect("/admin/products");
 }
 
@@ -88,7 +95,7 @@ export async function updateProduct(
   let imagePath: string | undefined;
   if (imageFile instanceof File && imageFile.size > 0) {
     try {
-      imagePath = await saveUploadedImage(imageFile, "products");
+      imagePath = await saveUploadedImage(imageFile);
     } catch (e) {
       return { error: e instanceof Error ? e.message : "ছবি আপলোড ব্যর্থ হয়েছে", fieldErrors: {} };
     }
@@ -105,14 +112,14 @@ export async function updateProduct(
     },
   });
 
-  revalidatePath("/admin/products");
+  revalidateProductSurfaces();
   redirect("/admin/products");
 }
 
 export async function toggleProductActive(productId: string, isActive: boolean) {
   await requireAdmin();
   await prisma.product.update({ where: { id: productId }, data: { isActive } });
-  revalidatePath("/admin/products");
+  revalidateProductSurfaces();
 }
 
 export async function deleteProduct(formData: FormData) {
@@ -120,5 +127,5 @@ export async function deleteProduct(formData: FormData) {
   const productId = formData.get("productId")?.toString();
   if (!productId) return;
   await prisma.product.delete({ where: { id: productId } });
-  revalidatePath("/admin/products");
+  revalidateProductSurfaces();
 }

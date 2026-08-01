@@ -107,13 +107,28 @@ export function QuestionForm({
       </Field>
 
       {showImageUpload ? (
-        <Field label="প্রশ্নের ছবি (ঐচ্ছিক, না দিলে প্রোডাক্টের মূল ছবি দেখাবে)">
-          <ImageUploadField
-            name="questionImage"
-            currentImage={initial?.questionImage}
-            previewClassName="h-20 w-32"
-          />
-        </Field>
+        <div className="flex flex-col gap-2 rounded-2xl border border-cream-200 bg-cream-050 p-4">
+          <span className="text-sm font-medium text-ink-700">প্রশ্নের নিজস্ব ছবি (ঐচ্ছিক)</span>
+          <p className="text-xs text-ink-700">
+            না দিলে প্রোডাক্টের মূল ছবিই দেখানো হবে। হাতা, কাপড়ের টেক্সচার বা এমব্রয়ডারির মতো
+            নির্দিষ্ট কিছু নিয়ে প্রশ্ন হলে সেটার ক্লোজ-আপ ছবি এখানে দিন।
+          </p>
+          <div className="mt-1">
+            <ImageUploadField
+              name="questionImage"
+              currentImage={initial?.questionImage}
+              previewClassName="h-24 w-36"
+            />
+          </div>
+          {initial?.questionImage ? (
+            <label className="mt-1 flex items-center gap-2">
+              <input type="checkbox" name="removeQuestionImage" />
+              <span className="text-xs text-ink-700">
+                ছবিটি সরিয়ে দিন (প্রোডাক্টের মূল ছবি ব্যবহার হবে)
+              </span>
+            </label>
+          ) : null}
+        </div>
       ) : null}
 
       <button

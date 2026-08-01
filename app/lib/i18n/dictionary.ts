@@ -47,6 +47,30 @@ export const dictionary = {
 
   start_survey_cta: { bn: "সার্ভে শুরু করুন", en: "Start Survey" },
 
+  // Home page — editorial masthead & stats
+  home_edition: { bn: "রিসার্চ সংস্করণ", en: "Research Edition" },
+  home_season: { bn: "কালেকশন ২০২৬", en: "Collection 2026" },
+  home_hero_kicker: {
+    bn: "ডিজাইন ঠিক হয় সেলাইয়ের আগে",
+    en: "Designs decided before the first stitch",
+  },
+  home_scroll_hint: { bn: "স্ক্রল করুন", en: "Scroll" },
+  home_stat_designs: { bn: "ডিজাইন রিভিউয়ের জন্য", en: "designs to review" },
+  home_stat_minutes: { bn: "মিনিটেই শেষ", en: "minutes to finish" },
+  home_stat_voices: { bn: "জন মতামত দিয়েছেন", en: "voices so far" },
+  home_marquee_label: { bn: "এই কালেকশনে", en: "In this collection" },
+  home_gallery_cta: { bn: "সবগুলো ডিজাইন দেখুন", en: "See every design" },
+  home_why_title: { bn: "কেন আপনার মতামত গুরুত্বপূর্ণ", en: "Why your opinion matters" },
+  home_why_body: {
+    bn: "আমরা আগে বানিয়ে পরে বিক্রির চেষ্টা করি না। প্রতিটি ডিজাইন আপনার মতো ক্রেতাদের রেটিং ও মন্তব্য পেরিয়ে তবেই উৎপাদনে যায় — তাই যা তৈরি হয়, তা আসলেই আপনি যা চান।",
+    en: "We do not build first and hope it sells. Every design has to pass the ratings and comments of shoppers like you before it goes into production — so what gets made is what you actually want.",
+  },
+  home_privacy_note: {
+    bn: "আপনার তথ্য শুধু গবেষণার কাজেই ব্যবহার হবে, কোথাও শেয়ার করা হবে না।",
+    en: "Your details are used for research only and are never shared.",
+  },
+  home_sticky_cta: { bn: "মতামত দিন", en: "Give feedback" },
+
   form_title: { bn: "আপনার সম্পর্কে কিছু তথ্য", en: "A Bit About You" },
   form_subtitle: {
     bn: "এই তথ্যগুলো শুধু গবেষণার কাজে ব্যবহার হবে।",

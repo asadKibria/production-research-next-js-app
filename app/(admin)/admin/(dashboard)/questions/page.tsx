@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/app/lib/prisma";
 import { deleteQuestionTemplate } from "@/app/lib/actions/question";
+import { ConfirmSubmitButton } from "@/app/components/ConfirmSubmitButton";
 
 const TYPE_LABELS: Record<string, string> = {
   multiple_choice: "মাল্টিপল চয়েস",
@@ -50,12 +51,13 @@ export default async function QuestionTemplatesPage() {
             </Link>
             <form action={deleteQuestionTemplate}>
               <input type="hidden" name="id" value={q.id} />
-              <button
-                type="submit"
+              <ConfirmSubmitButton
+                title="ডিফল্ট প্রশ্নটি মুছে ফেলবেন?"
+                message={`"${q.questionText}" টেমপ্লেটটি মুছে যাবে। আগে তৈরি হওয়া প্রোডাক্টের প্রশ্নগুলো অক্ষত থাকবে, তবে নতুন প্রোডাক্টে এটি আর যোগ হবে না।`}
                 className="rounded-full border border-red-200 px-4 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
               >
                 মুছুন
-              </button>
+              </ConfirmSubmitButton>
             </form>
           </div>
         ))}

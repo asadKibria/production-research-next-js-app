@@ -1,7 +1,9 @@
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/app/lib/prisma";
 import { deleteProductQuestion } from "@/app/lib/actions/question";
+import { ConfirmSubmitButton } from "@/app/components/ConfirmSubmitButton";
 
 const TYPE_LABELS: Record<string, string> = {
   multiple_choice: "মাল্টিপল চয়েস",
@@ -46,9 +48,30 @@ export default async function ProductQuestionsPage({
             className="flex items-center gap-4 rounded-2xl border border-cream-200 bg-cream-050 p-4"
           >
             <span className="text-sm text-ink-700">{idx + 1}.</span>
-            <div className="flex-1">
+
+            <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-paper">
+              {q.questionImage ?? product.image ? (
+                <Image
+                  src={(q.questionImage ?? product.image) as string}
+                  alt=""
+                  fill
+                  sizes="48px"
+                  className="object-cover"
+                />
+              ) : null}
+              {!q.questionImage ? (
+                <span className="absolute inset-x-0 bottom-0 bg-ink-900/60 py-0.5 text-center text-[9px] leading-none text-cream-050">
+                  ডিফল্ট
+                </span>
+              ) : null}
+            </div>
+
+            <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-ink-900">{q.questionText}</p>
-              <p className="text-xs text-ink-700">{TYPE_LABELS[q.questionType] ?? q.questionType}</p>
+              <p className="text-xs text-ink-700">
+                {TYPE_LABELS[q.questionType] ?? q.questionType}
+                {q.questionImage ? " · নিজস্ব ছবি" : ""}
+              </p>
             </div>
             <Link
               href={`/admin/products/${product.id}/questions/${q.id}/edit`}
@@ -59,12 +82,13 @@ export default async function ProductQuestionsPage({
             <form action={deleteProductQuestion}>
               <input type="hidden" name="id" value={q.id} />
               <input type="hidden" name="productId" value={product.id} />
-              <button
-                type="submit"
+              <ConfirmSubmitButton
+                title="প্রশ্নটি মুছে ফেলবেন?"
+                message={`"${q.questionText}" প্রশ্নটি এবং এর সব উত্তর স্থায়ীভাবে মুছে যাবে। এটি ফিরিয়ে আনা যাবে না।`}
                 className="rounded-full border border-red-200 px-4 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
               >
                 মুছুন
-              </button>
+              </ConfirmSubmitButton>
             </form>
           </div>
         ))}

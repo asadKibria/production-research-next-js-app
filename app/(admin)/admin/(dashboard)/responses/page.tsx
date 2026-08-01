@@ -3,6 +3,7 @@ import { prisma } from "@/app/lib/prisma";
 import { responseFilterSchema } from "@/app/lib/validation";
 import { queryResponses } from "@/app/lib/response-query";
 import { deleteResponseAdmin } from "@/app/lib/actions/response";
+import { ConfirmSubmitButton } from "@/app/components/ConfirmSubmitButton";
 import { ResponseFilterForm } from "./ResponseFilterForm";
 
 const GENDER_LABELS: Record<string, string> = { male: "পুরুষ", female: "মহিলা", other: "অন্যান্য" };
@@ -119,12 +120,13 @@ export default async function AdminResponsesPage({
                     </Link>
                     <form action={deleteResponseAdmin}>
                       <input type="hidden" name="responseId" value={response.id} />
-                      <button
-                        type="submit"
+                      <ConfirmSubmitButton
+                        title="রেসপন্সটি মুছে ফেলবেন?"
+                        message={`${response.customer.fullName} এর "${response.product.title}" সম্পর্কিত সব উত্তর ও রেটিং স্থায়ীভাবে মুছে যাবে।`}
                         className="rounded-full border border-red-200 px-3 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
                       >
                         মুছুন
-                      </button>
+                      </ConfirmSubmitButton>
                     </form>
                   </div>
                 </td>

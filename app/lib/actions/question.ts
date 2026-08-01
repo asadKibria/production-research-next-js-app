@@ -134,7 +134,8 @@ export async function updateProductQuestion(
   }
   const options = buildOptions(questionType, formData);
 
-  let questionImage: string | undefined;
+  // undefined = leave as-is, null = clear it, string = replace it.
+  let questionImage: string | null | undefined;
   const imageFile = formData.get("questionImage");
   if (imageFile instanceof File && imageFile.size > 0) {
     try {
@@ -142,6 +143,8 @@ export async function updateProductQuestion(
     } catch (e) {
       return { error: e instanceof Error ? e.message : "ছবি আপলোড ব্যর্থ হয়েছে", fieldErrors: {} };
     }
+  } else if (formData.get("removeQuestionImage") === "on") {
+    questionImage = null;
   }
 
   await prisma.productQuestion.update({
@@ -151,7 +154,7 @@ export async function updateProductQuestion(
       questionType,
       options,
       displayOrder,
-      ...(questionImage ? { questionImage } : {}),
+      ...(questionImage !== undefined ? { questionImage } : {}),
     },
   });
 

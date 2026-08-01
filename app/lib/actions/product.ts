@@ -122,6 +122,24 @@ export async function toggleProductActive(productId: string, isActive: boolean) 
   revalidateProductSurfaces();
 }
 
+/**
+ * Persists a new product order. `orderedIds` is the full list of product ids in
+ * the order they should appear; each row's displayOrder is rewritten to its
+ * index so the sequence stays gap-free.
+ */
+export async function reorderProducts(orderedIds: string[]) {
+  await requireAdmin();
+  if (orderedIds.length === 0) return;
+
+  await prisma.$transaction(
+    orderedIds.map((id, index) =>
+      prisma.product.update({ where: { id }, data: { displayOrder: index + 1 } }),
+    ),
+  );
+
+  revalidateProductSurfaces();
+}
+
 export async function deleteProduct(formData: FormData) {
   await requireAdmin();
   const productId = formData.get("productId")?.toString();

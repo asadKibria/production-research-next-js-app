@@ -6,6 +6,7 @@ import { ZoomableImage } from "@/app/components/ZoomableImage";
 import { useLanguage } from "@/app/lib/i18n/LanguageProvider";
 import { getChoiceOptions, getPriceOpinionRange } from "@/app/lib/question-options";
 import {
+  questionIsOptional,
   questionRequiresRating,
   safeParseArray,
   type AnswerState,
@@ -354,6 +355,11 @@ export function ImmersiveQuestionScreen({
 
           <h2 className="text-balance text-xl font-semibold leading-snug text-cream-050 sm:text-2xl">
             {question.questionText}
+            {questionIsOptional(question.questionType) ? (
+              <span className="ml-2 whitespace-nowrap align-middle text-xs font-medium text-cream-050/60">
+                {t("wizard_optional_badge")}
+              </span>
+            ) : null}
           </h2>
 
           {questionRequiresRating(question.questionType) || question.questionType === "rating" ? (
@@ -370,7 +376,11 @@ export function ImmersiveQuestionScreen({
               />
             </div>
           ) : (
-            <p className="mt-2 text-sm text-cream-050/60">{t("wizard_swipe_hint")}</p>
+            <p className="mt-2 text-sm text-cream-050/60">
+              {questionIsOptional(question.questionType)
+                ? t("wizard_optional_hint")
+                : t("wizard_swipe_hint")}
+            </p>
           )}
         </div>
 

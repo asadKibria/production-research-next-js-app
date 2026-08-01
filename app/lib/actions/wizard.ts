@@ -78,6 +78,9 @@ export async function submitResponse(
     questionType === "multiple_choice" || questionType === "checkbox";
 
   for (const q of questions) {
+    // Free text is optional — mirrors `questionIsOptional` in wizard-types.ts.
+    if (q.questionType === "text") continue;
+
     const a = answerByQuestionId.get(q.id);
     const hasAnswer =
       q.questionType === "rating" ? true : Boolean(a?.answerValue && a.answerValue.trim().length > 0);

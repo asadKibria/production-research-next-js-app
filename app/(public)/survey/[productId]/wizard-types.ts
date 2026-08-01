@@ -25,7 +25,16 @@ export function questionRequiresRating(questionType: QuestionType): boolean {
   return questionType === "multiple_choice" || questionType === "checkbox";
 }
 
+// Free text is the one question nobody should be forced to answer — a customer
+// with nothing extra to say should still be able to move on. Kept in sync with
+// `submitResponse` in app/lib/actions/wizard.ts.
+export function questionIsOptional(questionType: QuestionType): boolean {
+  return questionType === "text";
+}
+
 export function isAnswerValid(question: WizardQuestion, answer: AnswerState): boolean {
+  if (questionIsOptional(question.questionType)) return true;
+
   const hasAnswer =
     question.questionType === "rating"
       ? true

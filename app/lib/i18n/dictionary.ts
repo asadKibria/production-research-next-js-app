@@ -112,6 +112,11 @@ export const dictionary = {
     bn: "ছবিতে দুই আঙুলে জুম বা ডাবল-ট্যাপ করে ডিটেইল দেখুন",
     en: "Pinch or double-tap the photo to inspect the details",
   },
+  wizard_optional_badge: { bn: "(ঐচ্ছিক)", en: "(optional)" },
+  wizard_optional_hint: {
+    bn: "কিছু বলার থাকলে লিখুন — না লিখলেও পরের ধাপে যেতে পারবেন",
+    en: "Write anything you like — you can skip it and move on",
+  },
   wizard_opinion_title: { bn: "আপনার নিজস্ব মতামত", en: "Anything else on your mind?" },
   wizard_opinion_optional: { bn: "ঐচ্ছিক — না লিখলেও জমা দেওয়া যাবে", en: "Optional — you can submit without it" },
   wizard_opinion_placeholder: {

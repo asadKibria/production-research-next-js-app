@@ -7,7 +7,11 @@ import { requireAdmin } from "@/app/lib/auth";
 import { questionTypeSchema } from "@/app/lib/validation";
 import { saveUploadedImage } from "@/app/lib/upload";
 import { serializeOptions } from "@/app/lib/question-options";
-import { syncAllProductsFromTemplates, syncProductQuestions } from "@/app/lib/question-sync";
+import {
+  refreshQuestionSourceFlag,
+  syncAllProductsFromTemplates,
+  syncProductQuestions,
+} from "@/app/lib/question-sync";
 
 export type QuestionFormState = { error: string | null; fieldErrors: Record<string, string> };
 
@@ -179,7 +183,9 @@ export async function updateProductQuestion(
       ...(questionImage !== undefined ? { questionImage } : {}),
     },
   });
+  await refreshQuestionSourceFlag(productId);
 
+  revalidatePath("/admin/products");
   revalidatePath(`/admin/products/${productId}/questions`);
   redirect(`/admin/products/${productId}/questions`);
 }
@@ -190,16 +196,34 @@ export async function deleteProductQuestion(formData: FormData) {
   const productId = formData.get("productId")?.toString();
   if (!id) return;
   await prisma.productQuestion.delete({ where: { id } });
-  if (productId) revalidatePath(`/admin/products/${productId}/questions`);
+  if (productId) {
+    await refreshQuestionSourceFlag(productId);
+    revalidatePath("/admin/products");
+    revalidatePath(`/admin/products/${productId}/questions`);
+  }
 }
 
 /**
- * Switches a product between following the default questions and keeping its
- * own list. Switching to defaults immediately re-syncs, which is where custom
- * wording gets replaced — the caller confirms that with the admin first.
+ * The product-level switch, which acts on the whole list at once: freeze every
+ * question so default-question edits stop reaching them, or reset every
+ * question back to its default. The caller confirms the reset first, since that
+ * is where custom wording gets replaced.
  */
 export async function setProductQuestionSource(productId: string, source: "defaults" | "custom") {
   await requireAdmin();
+
+  if (source === "custom") {
+    await prisma.productQuestion.updateMany({
+      where: { productId },
+      data: { isCustomized: true },
+    });
+  } else {
+    await prisma.productQuestion.updateMany({
+      where: { productId },
+      data: { isCustomized: false },
+    });
+  }
+
   await prisma.product.update({ where: { id: productId }, data: { questionSource: source } });
   if (source === "defaults") await syncProductQuestions(productId);
 
@@ -228,6 +252,28 @@ export async function resetProductQuestionToDefault(formData: FormData) {
       isCustomized: false,
     },
   });
+  await refreshQuestionSourceFlag(question.productId);
 
+  revalidatePath("/admin/products");
+  if (productId) revalidatePath(`/admin/products/${productId}/questions`);
+}
+
+/**
+ * Detaches one question from its default, so the admin can word it their way
+ * without a later default-question edit undoing it.
+ */
+export async function markProductQuestionCustom(formData: FormData) {
+  await requireAdmin();
+  const id = formData.get("id")?.toString();
+  const productId = formData.get("productId")?.toString();
+  if (!id) return;
+
+  const question = await prisma.productQuestion.update({
+    where: { id },
+    data: { isCustomized: true },
+  });
+  await refreshQuestionSourceFlag(question.productId);
+
+  revalidatePath("/admin/products");
   if (productId) revalidatePath(`/admin/products/${productId}/questions`);
 }

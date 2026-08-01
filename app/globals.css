@@ -69,6 +69,69 @@ body {
   .nudge-up {
     animation: nudge-up 1.5s ease-in-out infinite;
   }
+
+  /* Page-to-page transition. Short enough that it never delays anything the
+     customer is waiting for — it only takes the hard cut off the navigation. */
+  .page-enter {
+    animation: page-enter 160ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* Opacity-only variant for the customer flow. A transform on the wrapper
+     would become the containing block for the wizard's `fixed inset-0` screen
+     and shift it for the length of the animation. */
+  .page-fade {
+    animation: page-fade 160ms ease-out;
+  }
+
+  /* Pinch/zoom coach mark. CSS keeps framer-motion out of the survey bundle,
+     which is the one route that has to be light on a phone. */
+  .coach-in {
+    animation: coach-in 400ms ease-out;
+  }
+  .coach-pulse {
+    animation: coach-pulse 2s ease-in-out infinite;
+  }
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 6px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes page-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes coach-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes coach-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.78);
+  }
 }
 
 @keyframes nudge-up {
@@ -94,7 +157,11 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .marquee-track,
-  .nudge-up {
+  .nudge-up,
+  .page-enter,
+  .page-fade,
+  .coach-in,
+  .coach-pulse {
     animation: none;
   }
 }

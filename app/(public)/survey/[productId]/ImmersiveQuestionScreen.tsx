@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
 import { ZoomableImage } from "@/app/components/ZoomableImage";
 import { useLanguage } from "@/app/lib/i18n/LanguageProvider";
 import { getChoiceOptions, getPriceOpinionRange } from "@/app/lib/question-options";
@@ -585,27 +584,17 @@ function LanguagePill() {
  */
 function ZoomCoachMark({ label }: { label: string }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.4 }}
-      className="pointer-events-none absolute left-1/2 top-[22%] z-10 flex -translate-x-1/2 flex-col items-center gap-2.5"
-    >
-      <motion.span
-        className="flex h-16 w-16 items-center justify-center rounded-full border border-white/50 bg-black/25 text-cream-050"
-        animate={{ scale: [1, 0.78, 1] }}
-        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-      >
+    <div className="coach-in pointer-events-none absolute left-1/2 top-[22%] z-10 flex -translate-x-1/2 flex-col items-center gap-2.5">
+      <span className="coach-pulse flex h-16 w-16 items-center justify-center rounded-full border border-white/50 bg-black/25 text-cream-050">
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <circle cx="11" cy="11" r="7" />
           <path d="M11 8v6M8 11h6M20 20l-4.5-4.5" strokeLinecap="round" />
         </svg>
-      </motion.span>
+      </span>
       <span className="max-w-[15rem] rounded-full bg-black/45 px-3.5 py-1.5 text-center text-[11px] font-medium leading-snug text-cream-050">
         {label}
       </span>
-    </motion.div>
+    </div>
   );
 }
 

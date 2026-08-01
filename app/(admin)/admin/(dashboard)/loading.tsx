@@ -1,6 +1,10 @@
 /**
- * Shown while a dynamic admin page waits on the database. Keeps navigation
- * feeling instant instead of blocking on a blank screen.
+ * Shown while the dashboard waits on the database. Keeps navigation feeling
+ * instant instead of blocking on a blank screen.
+ *
+ * This one is the dashboard's own KPI-and-charts shape; the pages below it
+ * bring their own list-shaped skeleton, so nobody sees stat cards flash before
+ * a table arrives.
  */
 export default function AdminDashboardLoading() {
   return (

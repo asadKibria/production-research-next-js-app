@@ -32,6 +32,7 @@ export default async function AdminProductsPage() {
           image: p.image,
           isActive: p.isActive,
           displayOrder: p.displayOrder,
+          questionSource: p.questionSource,
           questionCount: p._count.questions,
           responseCount: p._count.responses,
         }))}

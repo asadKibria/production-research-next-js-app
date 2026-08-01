@@ -65,7 +65,9 @@ export async function createProduct(
       isActive: parsed.data.isActive,
       displayOrder: parsed.data.displayOrder,
       questions: {
+        // templateId is what keeps these copies following their default later.
         create: templates.map((t) => ({
+          templateId: t.id,
           questionText: t.questionText,
           questionType: t.questionType,
           options: t.options,

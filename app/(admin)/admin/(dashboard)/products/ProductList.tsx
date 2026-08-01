@@ -6,6 +6,7 @@ import { Reorder, useDragControls } from "framer-motion";
 import { useState, useTransition } from "react";
 import { ConfirmSubmitButton } from "@/app/components/ConfirmSubmitButton";
 import { deleteProduct, reorderProducts, toggleProductActive } from "@/app/lib/actions/product";
+import { QuestionSourceSwitch } from "./QuestionSourceSwitch";
 
 export type AdminProduct = {
   id: string;
@@ -13,6 +14,7 @@ export type AdminProduct = {
   image: string | null;
   isActive: boolean;
   displayOrder: number;
+  questionSource: "defaults" | "custom";
   questionCount: number;
   responseCount: number;
 };
@@ -145,6 +147,8 @@ function ProductRow({ product: p, position }: { product: AdminProduct; position:
       </div>
 
       <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap">
+        <QuestionSourceSwitch productId={p.id} source={p.questionSource} />
+
         <form action={toggleProductActive.bind(null, p.id, !p.isActive)}>
           <button
             type="submit"

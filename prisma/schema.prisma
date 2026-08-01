@@ -20,17 +20,27 @@ model Admin {
   updatedAt    DateTime @updatedAt
 }
 
+/// Where a product's questions come from.
+enum QuestionSource {
+  /// Mirrors the shared default questions — editing a default question updates
+  /// every product on this setting.
+  defaults
+  /// The product keeps its own list, which the admin edits question by question.
+  custom
+}
+
 model Product {
-  id           String             @id @default(cuid())
-  title        String
-  description  String?
-  image        String?
-  isActive     Boolean            @default(true)
-  displayOrder Int                @default(0)
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
-  questions    ProductQuestion[]
-  responses    Response[]
+  id             String            @id @default(cuid())
+  title          String
+  description    String?
+  image          String?
+  isActive       Boolean           @default(true)
+  displayOrder   Int               @default(0)
+  questionSource QuestionSource    @default(defaults)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  questions      ProductQuestion[]
+  responses      Response[]
 
   @@index([isActive, displayOrder])
 }
@@ -65,11 +75,19 @@ model ProductQuestion {
   options       String?
   questionImage String?
   displayOrder  Int              @default(0)
+  /// The default question this one was copied from. Deliberately a plain id and
+  /// not a foreign key: deleting a default question must never touch a product
+  /// question that already holds customer answers.
+  templateId    String?
+  /// True once the admin has edited this question away from its default, which
+  /// is what stops default-question edits from overwriting it.
+  isCustomized  Boolean          @default(false)
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
   answers       ResponseAnswer[]
 
   @@index([productId, displayOrder])
+  @@index([templateId])
 }
 
 enum Gender {

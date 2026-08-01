@@ -13,7 +13,10 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 export default async function QuestionTemplatesPage() {
-  const templates = await prisma.questionTemplate.findMany({ orderBy: { displayOrder: "asc" } });
+  const [templates, followerCount] = await Promise.all([
+    prisma.questionTemplate.findMany({ orderBy: { displayOrder: "asc" } }),
+    prisma.product.count({ where: { questionSource: "defaults" } }),
+  ]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -21,7 +24,8 @@ export default async function QuestionTemplatesPage() {
         <div>
           <h1 className="text-xl font-semibold text-ink-900">ডিফল্ট প্রশ্ন সেট</h1>
           <p className="mt-1 text-sm text-ink-700">
-            নতুন প্রোডাক্ট তৈরি হলে এই প্রশ্নগুলো স্বয়ংক্রিয়ভাবে কপি হয়ে যাবে
+            এখানে কিছু বদলালে {followerCount}টি প্রোডাক্টে সাথে সাথে বদলে যাবে — যেগুলো ডিফল্ট প্রশ্ন
+            অনুসরণ করছে
           </p>
         </div>
         <Link
@@ -53,7 +57,7 @@ export default async function QuestionTemplatesPage() {
               <input type="hidden" name="id" value={q.id} />
               <ConfirmSubmitButton
                 title="ডিফল্ট প্রশ্নটি মুছে ফেলবেন?"
-                message={`"${q.questionText}" টেমপ্লেটটি মুছে যাবে। আগে তৈরি হওয়া প্রোডাক্টের প্রশ্নগুলো অক্ষত থাকবে, তবে নতুন প্রোডাক্টে এটি আর যোগ হবে না।`}
+                message={`"${q.questionText}" ডিফল্ট প্রশ্নটি মুছে যাবে, এবং যেসব প্রোডাক্ট ডিফল্ট প্রশ্ন অনুসরণ করছে তাদের তালিকা থেকেও বাদ যাবে। তবে যেখানে ইতিমধ্যে উত্তর এসেছে, সেই প্রশ্ন ও উত্তর মুছবে না।`}
                 className="rounded-full border border-red-200 px-4 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
               >
                 মুছুন

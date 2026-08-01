@@ -7,6 +7,7 @@ import { requireAdmin } from "@/app/lib/auth";
 import { questionTypeSchema } from "@/app/lib/validation";
 import { saveUploadedImage } from "@/app/lib/upload";
 import { serializeOptions } from "@/app/lib/question-options";
+import { syncAllProductsFromTemplates, syncProductQuestions } from "@/app/lib/question-sync";
 
 export type QuestionFormState = { error: string | null; fieldErrors: Record<string, string> };
 
@@ -55,8 +56,10 @@ export async function createQuestionTemplate(
   const options = buildOptions(questionType, formData);
 
   await prisma.questionTemplate.create({ data: { questionText, questionType, options, displayOrder } });
+  await syncAllProductsFromTemplates();
 
   revalidatePath("/admin/questions");
+  revalidatePath("/admin/products");
   redirect("/admin/questions");
 }
 
@@ -76,8 +79,12 @@ export async function updateQuestionTemplate(
     where: { id },
     data: { questionText, questionType, options, displayOrder },
   });
+  // This is the whole point of a default question: the edit reaches every
+  // product that still follows it.
+  await syncAllProductsFromTemplates();
 
   revalidatePath("/admin/questions");
+  revalidatePath("/admin/products");
   redirect("/admin/questions");
 }
 
@@ -86,7 +93,9 @@ export async function deleteQuestionTemplate(formData: FormData) {
   const id = formData.get("id")?.toString();
   if (!id) return;
   await prisma.questionTemplate.delete({ where: { id } });
+  await syncAllProductsFromTemplates();
   revalidatePath("/admin/questions");
+  revalidatePath("/admin/products");
 }
 
 // ---- Product Questions ----
@@ -113,8 +122,18 @@ export async function createProductQuestion(
     }
   }
 
+  // A hand-written question has no default behind it, so it is custom by
+  // definition and no sync will ever rewrite it.
   await prisma.productQuestion.create({
-    data: { productId, questionText, questionType, options, questionImage, displayOrder },
+    data: {
+      productId,
+      questionText,
+      questionType,
+      options,
+      questionImage,
+      displayOrder,
+      isCustomized: true,
+    },
   });
 
   revalidatePath(`/admin/products/${productId}/questions`);
@@ -154,6 +173,9 @@ export async function updateProductQuestion(
       questionType,
       options,
       displayOrder,
+      // Editing is what makes a question custom — from here on, default-question
+      // edits leave it alone.
+      isCustomized: true,
       ...(questionImage !== undefined ? { questionImage } : {}),
     },
   });
@@ -168,5 +190,44 @@ export async function deleteProductQuestion(formData: FormData) {
   const productId = formData.get("productId")?.toString();
   if (!id) return;
   await prisma.productQuestion.delete({ where: { id } });
+  if (productId) revalidatePath(`/admin/products/${productId}/questions`);
+}
+
+/**
+ * Switches a product between following the default questions and keeping its
+ * own list. Switching to defaults immediately re-syncs, which is where custom
+ * wording gets replaced — the caller confirms that with the admin first.
+ */
+export async function setProductQuestionSource(productId: string, source: "defaults" | "custom") {
+  await requireAdmin();
+  await prisma.product.update({ where: { id: productId }, data: { questionSource: source } });
+  if (source === "defaults") await syncProductQuestions(productId);
+
+  revalidatePath("/admin/products");
+  revalidatePath(`/admin/products/${productId}/questions`);
+}
+
+/** Puts one question back to its default wording, options and type. */
+export async function resetProductQuestionToDefault(formData: FormData) {
+  await requireAdmin();
+  const id = formData.get("id")?.toString();
+  const productId = formData.get("productId")?.toString();
+  if (!id) return;
+
+  const question = await prisma.productQuestion.findUnique({ where: { id } });
+  if (!question?.templateId) return;
+  const template = await prisma.questionTemplate.findUnique({ where: { id: question.templateId } });
+  if (!template) return;
+
+  await prisma.productQuestion.update({
+    where: { id },
+    data: {
+      questionText: template.questionText,
+      questionType: template.questionType,
+      options: template.options,
+      isCustomized: false,
+    },
+  });
+
   if (productId) revalidatePath(`/admin/products/${productId}/questions`);
 }

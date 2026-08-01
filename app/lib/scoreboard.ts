@@ -45,6 +45,13 @@ export type QuestionBreakdown = {
   positiveCount: number;
   neutralCount: number;
   negativeCount: number;
+  /**
+   * One 0–100 number for how positively the question is answered overall, or
+   * null for a question with no good-to-bad scale. Computed here rather than in
+   * the page because the breakdown is rendered by a client component, which
+   * cannot reach into this server-only module.
+   */
+  health: number | null;
 };
 
 export type ProductScore = {
@@ -400,6 +407,11 @@ export async function getScoreboard(): Promise<ScoreboardData> {
     const sumBy = (s: Sentiment) =>
       options.filter((o) => o.sentiment === s).reduce((sum, o) => sum + o.count, 0);
 
+    // Only the question's declared options carry a position on the scale, so
+    // stragglers left over from an edited option list are left out rather than
+    // scored as the worst possible answer.
+    const scaleOptions = options.filter((o) => o.sentiment !== null);
+
     return {
       questionText: q.questionText,
       questionType: q.questionType,
@@ -411,6 +423,7 @@ export async function getScoreboard(): Promise<ScoreboardData> {
       positiveCount: sumBy("positive"),
       neutralCount: sumBy("neutral"),
       negativeCount: sumBy("negative"),
+      health: q.isScale ? orderedChoiceScore(scaleOptions.map((o) => o.count)) : null,
     };
   });
 
@@ -423,14 +436,3 @@ export async function getScoreboard(): Promise<ScoreboardData> {
   };
 }
 
-/**
- * One 0–100 number for how positively a scale question is answered overall.
- * Only the question's declared options carry a position on the scale, so
- * stragglers from edited option lists are left out rather than scored as the
- * worst possible answer.
- */
-export function questionHealth(q: QuestionBreakdown): number | null {
-  if (!q.isScale) return null;
-  const declared = q.options.filter((o) => o.sentiment !== null);
-  return orderedChoiceScore(declared.map((o) => o.count));
-}

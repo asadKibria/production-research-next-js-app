@@ -361,17 +361,11 @@ export function ImmersiveQuestionScreen({
             ) : null}
           </h2>
 
-          {questionRequiresRating(question.questionType) || question.questionType === "rating" ? (
+          {questionRequiresRating(question.questionType) ? (
             <div className="mt-4">
               <GlassRatingInput
                 value={answer.rating}
-                onChange={(rating) =>
-                  onChange(
-                    question.questionType === "rating"
-                      ? { rating, answerValue: String(rating) }
-                      : { rating },
-                  )
-                }
+                onChange={(rating) => onChange({ rating, answerValue: String(rating) })}
               />
             </div>
           ) : (

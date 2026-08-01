@@ -9,6 +9,7 @@ import { ImmersiveQuestionScreen } from "./ImmersiveQuestionScreen";
 import {
   EMPTY_ANSWER,
   isAnswerValid,
+  questionRequiresRating,
   safeParseArray,
   type AnswerState,
   type WizardQuestion,
@@ -233,8 +234,12 @@ function ReviewStep({
     <div className="flex flex-col gap-4">
       {questions.map((q, idx) => {
         const a = answers[q.id];
-        const displayAnswer =
-          q.questionType === "checkbox" && a?.answerValue
+        // The rating question is shown as stars alone — repeating the bare
+        // number above them reads like an unanswered field.
+        const isRating = questionRequiresRating(q.questionType);
+        const displayAnswer = isRating
+          ? null
+          : q.questionType === "checkbox" && a?.answerValue
             ? safeParseArray(a.answerValue).join("، ")
             : (a?.answerValue ?? "—");
         return (
@@ -249,9 +254,13 @@ function ReviewStep({
                 {t("wizard_edit")}
               </button>
             </div>
-            <p className="mt-1 text-sm text-ink-700">{displayAnswer}</p>
-            {a?.rating ? (
-              <p className="mt-1 text-xs text-taupe-600">{"★".repeat(a.rating)}</p>
+            {displayAnswer !== null ? (
+              <p className="mt-1 text-sm text-ink-700">{displayAnswer}</p>
+            ) : null}
+            {isRating ? (
+              <p className="mt-1 text-sm text-taupe-600">
+                {a?.rating ? "★".repeat(a.rating) : "—"}
+              </p>
             ) : null}
             {!isAnswerValid(q, a ?? EMPTY_ANSWER) ? (
               <p className="mt-1 text-xs text-red-500">{t("wizard_validation_error")}</p>

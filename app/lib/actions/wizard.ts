@@ -71,34 +71,24 @@ export async function submitResponse(
   const answers = await prisma.responseAnswer.findMany({ where: { responseId } });
   const answerByQuestionId = new Map(answers.map((a) => [a.productQuestionId, a]));
 
-  // Only choice-style questions require a separate star rating. Free text,
-  // price opinion, purchase intent, and rating-type (dual-purpose) questions
-  // are already a complete answer on their own.
-  const requiresRating = (questionType: string) =>
-    questionType === "multiple_choice" || questionType === "checkbox";
-
   for (const q of questions) {
     // Free text is optional — mirrors `questionIsOptional` in wizard-types.ts.
     if (q.questionType === "text") continue;
 
     const a = answerByQuestionId.get(q.id);
-    const hasAnswer =
-      q.questionType === "rating" ? true : Boolean(a?.answerValue && a.answerValue.trim().length > 0);
 
-    if (!requiresRating(q.questionType)) {
-      if (!hasAnswer) {
-        return { ok: false, error: "সব প্রশ্নের উত্তর দিতে হবে", missingQuestionId: q.id };
+    // Stars live on the `rating` question alone, and there they are mandatory —
+    // mirrors `questionRequiresRating`/`isAnswerValid` in wizard-types.ts.
+    if (q.questionType === "rating") {
+      const hasRating = typeof a?.rating === "number" && a.rating >= 1 && a.rating <= 5;
+      if (!hasRating) {
+        return { ok: false, error: "রেটিং দিতে হবে", missingQuestionId: q.id };
       }
       continue;
     }
 
-    const hasRating = typeof a?.rating === "number" && a.rating >= 1 && a.rating <= 5;
-    if (!hasRating || !hasAnswer) {
-      return {
-        ok: false,
-        error: "সব প্রশ্নের উত্তর ও রেটিং দিতে হবে",
-        missingQuestionId: q.id,
-      };
+    if (!a?.answerValue || a.answerValue.trim().length === 0) {
+      return { ok: false, error: "সব প্রশ্নের উত্তর দিতে হবে", missingQuestionId: q.id };
     }
   }
 

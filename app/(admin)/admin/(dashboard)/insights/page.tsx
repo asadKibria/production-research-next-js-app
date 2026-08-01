@@ -164,15 +164,15 @@ function ConflictSection({
   return (
     <section className="grid grid-cols-1 gap-5 lg:grid-cols-2">
       <ConflictCard
-        title="লুকানো রত্ন"
-        subtitle="রেটিং কম, কিন্তু কিনতে আগ্রহী — এখানেই সংখ্যাটা মিথ্যা বলছে"
+        title="রেটিং কম, তবু কিনবে"
+        subtitle="স্টার কম কিন্তু ক্রয়ের আগ্রহ পজিটিভ — এখানেই স্কোরটা কম বলছে"
         tone="gem"
         items={hiddenGems}
         emptyText="এমন কোনো রেসপন্স এখনো নেই।"
       />
       <ConflictCard
-        title="ভদ্রতার রেটিং"
-        subtitle="৪–৫ স্টার, কিন্তু কিনবে না — প্রশংসা আছে, চাহিদা নেই"
+        title="রেটিং বেশি, তবু কিনবে না"
+        subtitle="স্টার বেশি কিন্তু ক্রয়ের আগ্রহ নেগেটিভ — প্রশংসা আছে, চাহিদা নেই"
         tone="polite"
         items={politePraise}
         emptyText="এমন কোনো রেসপন্স এখনো নেই।"

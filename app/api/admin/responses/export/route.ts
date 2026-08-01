@@ -48,6 +48,8 @@ export async function GET(request: NextRequest) {
         Question: a.productQuestion.questionText,
         Answer: displayAnswer(a.productQuestion.questionType, a.answerValue),
         Rating: a.rating ?? "",
+        // Repeated on each of the response's rows so it survives filtering/sorting.
+        "Custom Opinion": response.customOpinion ?? "",
         "Completed At": response.completedAt ? response.completedAt.toISOString() : "",
       });
     }

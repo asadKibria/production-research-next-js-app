@@ -104,6 +104,20 @@ export const dictionary = {
   gallery_status_not_started: { bn: "শুরু করুন", en: "Start" },
   gallery_status_draft: { bn: "চালিয়ে যান", en: "Continue" },
   gallery_status_completed: { bn: "সম্পন্ন হয়েছে", en: "Completed" },
+  gallery_zoom_hint: { bn: "বড় করে দেখুন", en: "View larger" },
+
+  // Question wizard — gesture coaching and the closing opinion field
+  wizard_drag_up_hint: { bn: "উত্তর দিতে উপরে টানুন", en: "Swipe up to answer" },
+  wizard_zoom_coach: {
+    bn: "ছবিতে দুই আঙুলে জুম বা ডাবল-ট্যাপ করে ডিটেইল দেখুন",
+    en: "Pinch or double-tap the photo to inspect the details",
+  },
+  wizard_opinion_title: { bn: "আপনার নিজস্ব মতামত", en: "Anything else on your mind?" },
+  wizard_opinion_optional: { bn: "ঐচ্ছিক — না লিখলেও জমা দেওয়া যাবে", en: "Optional — you can submit without it" },
+  wizard_opinion_placeholder: {
+    bn: "উপরের প্রশ্নগুলোয় আসেনি এমন কিছু বলার থাকলে এখানে লিখুন…",
+    en: "Tell us anything the questions above did not cover…",
+  },
 
   wizard_question_of: { bn: "প্রশ্ন", en: "Question" },
   wizard_of: { bn: "এর মধ্যে", en: "of" },

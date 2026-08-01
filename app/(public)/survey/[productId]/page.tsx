@@ -49,6 +49,7 @@ export default async function WizardPage({
       questions={questions}
       initialAnswers={initialAnswers}
       initialStep={response.currentStep}
+      initialCustomOpinion={response.customOpinion}
     />
   );
 }

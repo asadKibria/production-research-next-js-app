@@ -56,7 +56,11 @@ export type SubmitResult =
   | { ok: true }
   | { ok: false; error: string; missingQuestionId: string | null };
 
-export async function submitResponse(responseId: string): Promise<SubmitResult> {
+export async function submitResponse(
+  responseId: string,
+  /** Free-form closing remark. Blank is fine — it never blocks submission. */
+  customOpinion?: string | null,
+): Promise<SubmitResult> {
   const response = await assertOwnership(responseId);
   if (response.status === "completed") return { ok: true };
 
@@ -95,9 +99,15 @@ export async function submitResponse(responseId: string): Promise<SubmitResult> 
     }
   }
 
+  const trimmedOpinion = customOpinion?.trim();
+
   await prisma.response.update({
     where: { id: responseId },
-    data: { status: "completed", completedAt: new Date() },
+    data: {
+      status: "completed",
+      completedAt: new Date(),
+      customOpinion: trimmedOpinion ? trimmedOpinion.slice(0, 2000) : null,
+    },
   });
 
   // The home page caches the live participant count.

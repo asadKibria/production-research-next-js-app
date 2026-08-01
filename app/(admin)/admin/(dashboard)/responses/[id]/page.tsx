@@ -70,6 +70,17 @@ export default async function ResponseDetailPage({
         />
       </div>
 
+      {response.customOpinion ? (
+        <div className="rounded-2xl border border-taupe-400/50 bg-taupe-400/10 p-5">
+          <p className="text-xs font-medium uppercase tracking-wide text-taupe-600">
+            কাস্টমারের নিজস্ব মতামত
+          </p>
+          <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-ink-900">
+            {response.customOpinion}
+          </p>
+        </div>
+      ) : null}
+
       <div className="flex flex-col gap-3">
         {sortedAnswers.map((a) => {
           const image = a.productQuestion.questionImage ?? response.product.image;

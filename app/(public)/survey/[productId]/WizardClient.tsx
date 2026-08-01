@@ -22,6 +22,7 @@ export function WizardClient({
   questions,
   initialAnswers,
   initialStep,
+  initialCustomOpinion,
 }: {
   responseId: string;
   productId: string;
@@ -30,6 +31,7 @@ export function WizardClient({
   questions: WizardQuestion[];
   initialAnswers: Record<string, AnswerState>;
   initialStep: number;
+  initialCustomOpinion: string | null;
 }) {
   const { t } = useLanguage();
   const router = useRouter();
@@ -38,6 +40,7 @@ export function WizardClient({
   const [answers, setAnswers] = useState<Record<string, AnswerState>>(initialAnswers);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [customOpinion, setCustomOpinion] = useState(initialCustomOpinion ?? "");
 
   const isReview = step === totalSteps;
   const currentQuestion = !isReview ? questions[step - 1] : null;
@@ -90,7 +93,7 @@ export function WizardClient({
   function handleSubmit() {
     setError(null);
     startTransition(async () => {
-      const result = await submitResponse(responseId);
+      const result = await submitResponse(responseId, customOpinion);
       if (result.ok) {
         router.push(`/survey/${productId}/complete`);
       } else {
@@ -146,6 +149,25 @@ export function WizardClient({
         ) : null}
 
         <ReviewStep questions={questions} answers={answers} onEdit={handleEdit} />
+
+        {/* Closing free-text remark — never required */}
+        <div className="mt-5 rounded-2xl border border-cream-200 bg-cream-050 p-4">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+            <label htmlFor="customOpinion" className="text-sm font-medium text-ink-900">
+              {t("wizard_opinion_title")}
+            </label>
+            <span className="text-xs text-taupe-600">{t("wizard_opinion_optional")}</span>
+          </div>
+          <textarea
+            id="customOpinion"
+            value={customOpinion}
+            onChange={(e) => setCustomOpinion(e.target.value)}
+            rows={3}
+            maxLength={2000}
+            placeholder={t("wizard_opinion_placeholder")}
+            className="mt-2.5 w-full rounded-xl border border-cream-200 bg-paper p-3 text-sm leading-relaxed text-ink-900 outline-none placeholder:text-ink-700/50 focus:border-plum-700"
+          />
+        </div>
 
         <div className="mt-8 flex items-center justify-between gap-4">
           <button

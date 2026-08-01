@@ -108,6 +108,8 @@ model Response {
   product     Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
   status      ResponseStatus   @default(draft)
   currentStep Int              @default(1)
+  /// Free-form closing remark. Always optional — the survey submits fine without it.
+  customOpinion String?
   completedAt DateTime?
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt

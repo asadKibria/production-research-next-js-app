@@ -21,9 +21,19 @@ function midpoint(a: Point, b: Point): Point {
  * Uses Pointer Events so a single implementation covers mouse-drag (desktop)
  * and touch pan/pinch (mobile) without extra gesture libraries.
  */
-export function ZoomableImage({ src, alt }: { src: string; alt: string }) {
+export function ZoomableImage({
+  src,
+  alt,
+  coachMark,
+}: {
+  src: string;
+  alt: string;
+  /** Optional one-off hint teaching the pinch/double-tap gesture. */
+  coachMark?: React.ReactNode;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
+  const [touched, setTouched] = useState(false);
   const transformRef = useRef(transform);
   useEffect(() => {
     transformRef.current = transform;
@@ -51,6 +61,7 @@ export function ZoomableImage({ src, alt }: { src: string; alt: string }) {
   }, []);
 
   function handlePointerDown(e: React.PointerEvent) {
+    setTouched(true);
     (e.target as Element).setPointerCapture(e.pointerId);
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     setInteracting(true);
@@ -163,6 +174,10 @@ export function ZoomableImage({ src, alt }: { src: string; alt: string }) {
           className="object-cover"
         />
       </div>
+
+      {/* Disappears the moment the customer touches the photo, so anyone who
+          already knows the gesture never has to dismiss anything. */}
+      {coachMark && !touched ? coachMark : null}
     </div>
   );
 }

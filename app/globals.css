@@ -63,6 +63,24 @@ body {
     mask-image: linear-gradient(to right, transparent, black 6%, black 94%, transparent);
     -webkit-mask-image: linear-gradient(to right, transparent, black 6%, black 94%, transparent);
   }
+
+  /* "Swipe up" coach mark on the question sheet. A CSS animation rather than a
+     JS one so it keeps running on the compositor while the sheet is dragged. */
+  .nudge-up {
+    animation: nudge-up 1.5s ease-in-out infinite;
+  }
+}
+
+@keyframes nudge-up {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0.75;
+  }
+  50% {
+    transform: translate3d(0, -6px, 0);
+    opacity: 1;
+  }
 }
 
 @keyframes marquee-scroll {
@@ -75,7 +93,8 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .marquee-track {
+  .marquee-track,
+  .nudge-up {
     animation: none;
   }
 }

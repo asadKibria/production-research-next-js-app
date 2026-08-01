@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { motion, type PanInfo } from "framer-motion";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import { ZoomableImage } from "@/app/components/ZoomableImage";
 import { useLanguage } from "@/app/lib/i18n/LanguageProvider";
 import { getChoiceOptions, getPriceOpinionRange } from "@/app/lib/question-options";
@@ -12,11 +12,36 @@ import {
   type WizardQuestion,
 } from "./wizard-types";
 
-const PEEK_VH = 0.32;
 /** Upper bound only — the sheet is otherwise sized by its own content. */
 const SHEET_MAX_VH = 0.86;
-const HINT_SEEN_KEY = "hizjaab_sheet_hint_seen";
-const ZOOM_COACH_KEY = "hizjaab_zoom_coach_seen";
+/** Travel before a touch counts as a drag instead of a tap. */
+const DRAG_THRESHOLD = 5;
+/** Travel that commits to the other state on release. */
+const SNAP_DISTANCE = 44;
+/** px/ms — a flick this fast commits regardless of how far it travelled. */
+const SNAP_VELOCITY = 0.4;
+const SETTLE_MS = 300;
+const SETTLE_EASING = "cubic-bezier(0.22, 1, 0.36, 1)";
+
+const SHEET_OPENS_KEY = "hizjaab_sheet_opens";
+/** Once the sheet has been opened this many times, the customer knows. */
+const HINT_MAX_OPENS = 3;
+const ZOOM_USED_KEY = "hizjaab_zoom_used";
+const ZOOM_COACH_SHOWN_KEY = "hizjaab_zoom_coach_shown";
+const ZOOM_COACH_MAX = 3;
+/** Long enough to read a full Bangla sentence and act on it. */
+const ZOOM_COACH_MS = 11000;
+
+/* The first measurement has to land before the browser paints, otherwise the
+   sheet flashes open on load. useLayoutEffect would warn during SSR, so it is
+   only picked up on the client. */
+const useMeasureEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
+
+function readCount(key: string) {
+  const raw = sessionStorage.getItem(key);
+  const n = raw ? Number(raw) : 0;
+  return Number.isFinite(n) ? n : 0;
+}
 
 export function ImmersiveQuestionScreen({
   question,
@@ -49,71 +74,194 @@ export function ImmersiveQuestionScreen({
   const [showHint, setShowHint] = useState(false);
   const [showZoomCoach, setShowZoomCoach] = useState(false);
   const sheetRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
   const image = question.questionImage ?? productImage;
   const progressPct = Math.round((step / totalQuestions) * 100);
 
-  // The sheet is content-sized, so remeasure whenever that content changes
-  // (option lists differ per question, and an error message can appear).
-  useEffect(() => {
+  /*
+    The sheet is dragged by hand rather than by framer-motion. Every frame of a
+    drag writes straight to the node's transform — no React render, no
+    per-frame constraint measuring — which is what makes it keep up with the
+    finger on a mid-range phone. Only the resting state lives in React.
+  */
+  const offsetRef = useRef(0);
+  const collapsedOffsetRef = useRef(0);
+  const expandedRef = useRef(false);
+  const settledRef = useRef(false);
+  const dragRef = useRef<{
+    pointerId: number;
+    startY: number;
+    startOffset: number;
+    lastY: number;
+    lastTime: number;
+    velocity: number;
+    moved: boolean;
+  } | null>(null);
+  /** A finished drag must not turn into a tap on whatever was under the finger. */
+  const suppressClickRef = useRef(false);
+
+  const applyOffset = useCallback((y: number, animate: boolean) => {
     const el = sheetRef.current;
     if (!el) return;
+    offsetRef.current = y;
+    el.style.transition = animate ? `transform ${SETTLE_MS}ms ${SETTLE_EASING}` : "none";
+    el.style.transform = `translate3d(0, ${y}px, 0)`;
+  }, []);
+
+  const settle = useCallback(
+    (next: boolean) => {
+      expandedRef.current = next;
+      applyOffset(next ? 0 : collapsedOffsetRef.current, true);
+      setExpanded(next);
+      if (next) {
+        const opens = readCount(SHEET_OPENS_KEY) + 1;
+        sessionStorage.setItem(SHEET_OPENS_KEY, String(opens));
+        setShowHint(false);
+      }
+    },
+    [applyOffset],
+  );
+
+  // The sheet is content-sized and the collapsed peek is exactly its header, so
+  // remeasure whenever either changes (option lists differ per question, an
+  // error message can appear, the keyboard can resize the viewport).
+  useMeasureEffect(() => {
+    const sheet = sheetRef.current;
+    const header = headerRef.current;
+    if (!sheet || !header) return;
     const measure = () => {
-      const peekHeight = window.innerHeight * PEEK_VH;
-      setCollapsedOffset(Math.max(0, el.offsetHeight - peekHeight));
+      const offset = Math.max(0, sheet.offsetHeight - header.offsetHeight);
+      collapsedOffsetRef.current = offset;
+      setCollapsedOffset(offset);
+      if (!dragRef.current) {
+        applyOffset(expandedRef.current ? 0 : offset, settledRef.current);
+        settledRef.current = true;
+      }
     };
     measure();
     const observer = new ResizeObserver(measure);
-    observer.observe(el);
+    observer.observe(sheet);
+    observer.observe(header);
     window.addEventListener("resize", measure);
     return () => {
       observer.disconnect();
       window.removeEventListener("resize", measure);
     };
-  }, []);
+  }, [applyOffset]);
 
-  // Coach the swipe once per session, and never again after it is understood.
+  // Coach the swipe until the customer has clearly got it, then stop for good.
   // Deferred a beat so the hint animates in rather than appearing mid-paint,
   // and so sessionStorage is only read on the client.
   useEffect(() => {
-    if (sessionStorage.getItem(HINT_SEEN_KEY)) return;
-    const timer = setTimeout(() => setShowHint(true), 500);
+    if (readCount(SHEET_OPENS_KEY) >= HINT_MAX_OPENS) return;
+    const timer = setTimeout(() => setShowHint(true), 400);
     return () => clearTimeout(timer);
   }, []);
 
-  // The zoom gesture gets its own one-off coach mark, and only fades in after a
-  // beat so it never competes with the photo landing.
+  // The zoom gesture gets its own coach mark. It stays up long enough to read,
+  // and only stops appearing once the customer has actually zoomed once.
   useEffect(() => {
-    if (sessionStorage.getItem(ZOOM_COACH_KEY)) return;
-    const show = setTimeout(() => setShowZoomCoach(true), 900);
-    const hide = setTimeout(() => {
-      setShowZoomCoach(false);
-      sessionStorage.setItem(ZOOM_COACH_KEY, "1");
-    }, 6000);
+    if (sessionStorage.getItem(ZOOM_USED_KEY)) return;
+    if (readCount(ZOOM_COACH_SHOWN_KEY) >= ZOOM_COACH_MAX) return;
+    const show = setTimeout(() => {
+      setShowZoomCoach(true);
+      sessionStorage.setItem(ZOOM_COACH_SHOWN_KEY, String(readCount(ZOOM_COACH_SHOWN_KEY) + 1));
+    }, 700);
+    const hide = setTimeout(() => setShowZoomCoach(false), 700 + ZOOM_COACH_MS);
     return () => {
       clearTimeout(show);
       clearTimeout(hide);
     };
   }, []);
 
-  function markHintSeen() {
-    setShowHint(false);
-    sessionStorage.setItem(HINT_SEEN_KEY, "1");
+  function handleZoomUsed() {
+    sessionStorage.setItem(ZOOM_USED_KEY, "1");
+    setShowZoomCoach(false);
   }
 
-  function open() {
-    setExpanded(true);
-    markHintSeen();
-  }
-
-  function handleDragEnd(_e: unknown, info: PanInfo) {
-    const shouldExpand = info.offset.y < -40 || info.velocity.y < -300;
-    const shouldCollapse = info.offset.y > 40 || info.velocity.y > 300;
-    if (shouldExpand) open();
-    else if (shouldCollapse) setExpanded(false);
-  }
-
-  // Nothing to drag when the whole sheet already fits in the peek height.
+  // Nothing to drag when the whole sheet already fits above the fold.
   const draggable = collapsedOffset > 8;
+
+  function handlePointerDown(e: React.PointerEvent) {
+    if (!draggable || dragRef.current) return;
+    suppressClickRef.current = false;
+    dragRef.current = {
+      pointerId: e.pointerId,
+      startY: e.clientY,
+      startOffset: offsetRef.current,
+      lastY: e.clientY,
+      lastTime: e.timeStamp,
+      velocity: 0,
+      moved: false,
+    };
+  }
+
+  function handlePointerMove(e: React.PointerEvent) {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== e.pointerId) return;
+    const travelled = e.clientY - drag.startY;
+
+    if (!drag.moved) {
+      if (Math.abs(travelled) < DRAG_THRESHOLD) return;
+      drag.moved = true;
+      // Mouse pointers have no implicit capture, so take it explicitly once we
+      // know this is a real drag — before that, capture would eat the tap.
+      try {
+        headerRef.current?.setPointerCapture(e.pointerId);
+      } catch {
+        // pointer already gone; the drag still works without capture
+      }
+    }
+
+    const dt = e.timeStamp - drag.lastTime;
+    if (dt > 0) drag.velocity = (e.clientY - drag.lastY) / dt;
+    drag.lastY = e.clientY;
+    drag.lastTime = e.timeStamp;
+
+    // Rubber band past both ends so the sheet never feels stuck.
+    const max = collapsedOffsetRef.current;
+    const raw = drag.startOffset + travelled;
+    const y = raw < 0 ? raw * 0.25 : raw > max ? max + (raw - max) * 0.25 : raw;
+    applyOffset(y, false);
+  }
+
+  function handlePointerUp(e: React.PointerEvent) {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== e.pointerId) return;
+    dragRef.current = null;
+    try {
+      if (headerRef.current?.hasPointerCapture(e.pointerId)) {
+        headerRef.current.releasePointerCapture(e.pointerId);
+      }
+    } catch {
+      // capture was already released with the pointer
+    }
+    if (!drag.moved) return; // a tap — the click handler takes it from here
+
+    suppressClickRef.current = true;
+    const travelled = e.clientY - drag.startY;
+    let next = expandedRef.current;
+    if (drag.velocity < -SNAP_VELOCITY) next = true;
+    else if (drag.velocity > SNAP_VELOCITY) next = false;
+    else if (travelled < -SNAP_DISTANCE) next = true;
+    else if (travelled > SNAP_DISTANCE) next = false;
+    settle(next);
+  }
+
+  function handleHeaderClickCapture(e: React.MouseEvent) {
+    if (!suppressClickRef.current) return;
+    suppressClickRef.current = false;
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
+  function handleHeaderClick(e: React.MouseEvent) {
+    // Taps on the stars answer the question; taps on the rest of the header
+    // toggle the sheet.
+    if ((e.target as HTMLElement).closest("[data-sheet-control]")) return;
+    if (!draggable) return;
+    settle(!expandedRef.current);
+  }
 
   return (
     <div className="fixed inset-0 overflow-hidden bg-plum-950">
@@ -121,6 +269,7 @@ export function ImmersiveQuestionScreen({
         src={image ?? "/brand/hero.jpg"}
         alt=""
         coachMark={showZoomCoach ? <ZoomCoachMark label={t("wizard_zoom_coach")} /> : null}
+        onZoom={handleZoomUsed}
       />
 
       {/* subtle top scrim so the floating controls stay legible on bright photos */}
@@ -152,49 +301,57 @@ export function ImmersiveQuestionScreen({
       </div>
 
       {/* bottom sheet */}
-      <motion.div
+      <div
         ref={sheetRef}
-        drag={draggable ? "y" : false}
-        dragConstraints={{ top: 0, bottom: collapsedOffset }}
-        dragElastic={0.06}
-        dragMomentum={false}
-        animate={{ y: expanded || !draggable ? 0 : collapsedOffset }}
-        transition={{ type: "spring", damping: 30, stiffness: 420, mass: 0.7 }}
         style={{ maxHeight: `${SHEET_MAX_VH * 100}dvh`, willChange: "transform" }}
-        onDragEnd={handleDragEnd}
         /*
-          No backdrop-blur here. A blurred backdrop over a full-bleed photo has
-          to be recomposited every frame of the drag, which is what made this
-          sheet crawl on phones. A near-opaque background reads the same and
-          keeps the drag on the compositor.
+          No backdrop-blur and no translucency here. Both have to be
+          recomposited over the full-bleed photo on every frame of the drag,
+          which is what made this sheet crawl on phones. The opaque plum reads
+          the same and keeps the drag on the compositor.
         */
-        className="absolute inset-x-0 bottom-0 z-10 flex flex-col overflow-hidden rounded-t-[2rem] border-t border-white/20 bg-plum-950/95 shadow-[0_-8px_40px_rgba(0,0,0,0.45)]"
+        className="absolute inset-x-0 bottom-0 z-10 flex flex-col overflow-hidden rounded-t-[2rem] border-t border-white/20 bg-plum-950 shadow-[0_-8px_40px_rgba(0,0,0,0.45)]"
       >
-        <button
-          type="button"
-          onClick={() => (expanded ? setExpanded(false) : open())}
-          className="relative flex shrink-0 flex-col items-center gap-1 pb-2 pt-3"
-          aria-label={t("wizard_drag_up_hint")}
-          aria-expanded={expanded}
+        {/*
+          The whole header — grabber, question and stars — is the drag surface,
+          so the customer can grab anywhere in the part of the sheet they can
+          actually see. touch-action:none hands every vertical pixel to us
+          instead of letting the browser start a scroll first.
+        */}
+        <div
+          ref={headerRef}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          onClickCapture={handleHeaderClickCapture}
+          onClick={handleHeaderClick}
+          style={{ touchAction: draggable ? "none" : undefined }}
+          className={`shrink-0 select-none px-6 pb-5 ${draggable ? "cursor-grab active:cursor-grabbing" : ""}`}
         >
-          <span
-            className={`h-1.5 w-12 rounded-full transition-colors ${
-              showHint && !expanded ? "bg-cream-050" : "bg-white/40"
-            }`}
-          />
-          {showHint && !expanded && draggable ? (
-            <motion.span
-              className="flex items-center gap-1.5 text-[11px] font-medium text-cream-050/90"
-              animate={{ y: [0, -5, 0], opacity: [0.75, 1, 0.75] }}
-              transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+          <div className="flex flex-col items-center gap-1 pb-2 pt-3">
+            <button
+              type="button"
+              data-sheet-control
+              onClick={() => draggable && settle(!expandedRef.current)}
+              aria-label={t("wizard_drag_up_hint")}
+              aria-expanded={expanded}
+              className="flex w-full flex-col items-center gap-1 py-1"
             >
-              <ChevronUp />
-              {t("wizard_drag_up_hint")}
-            </motion.span>
-          ) : null}
-        </button>
+              <span
+                className={`h-1.5 w-12 rounded-full transition-colors ${
+                  showHint && !expanded ? "bg-cream-050" : "bg-white/40"
+                }`}
+              />
+              {showHint && !expanded && draggable ? (
+                <span className="nudge-up flex items-center gap-1.5 pt-0.5 text-xs font-medium text-cream-050">
+                  <ChevronUp />
+                  {t("wizard_drag_up_hint")}
+                </span>
+              ) : null}
+            </button>
+          </div>
 
-        <div className="flex flex-col overflow-y-auto overscroll-contain px-6 pb-8">
           <h2 className="text-balance text-xl font-semibold leading-snug text-cream-050 sm:text-2xl">
             {question.questionText}
           </h2>
@@ -215,10 +372,10 @@ export function ImmersiveQuestionScreen({
           ) : (
             <p className="mt-2 text-sm text-cream-050/60">{t("wizard_swipe_hint")}</p>
           )}
+        </div>
 
-          <div className="mt-6">
-            <GlassAnswerControl question={question} answer={answer} onChange={onChange} />
-          </div>
+        <div className="flex min-h-0 flex-col overflow-y-auto overscroll-contain px-6 pb-8">
+          <GlassAnswerControl question={question} answer={answer} onChange={onChange} />
 
           {error ? (
             <p className="mt-4 rounded-xl bg-red-500/20 px-4 py-2 text-sm text-red-100">{error}</p>
@@ -244,7 +401,7 @@ export function ImmersiveQuestionScreen({
             </button>
           </div>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }
@@ -262,6 +419,9 @@ function GlassRatingInput({
         <button
           key={n}
           type="button"
+          /* Marks this as a control, so a tap here rates instead of toggling
+             the sheet — while a drag that starts here still moves the sheet. */
+          data-sheet-control
           onClick={() => onChange(n)}
           aria-label={`${n} star`}
           aria-pressed={value !== null && value >= n}

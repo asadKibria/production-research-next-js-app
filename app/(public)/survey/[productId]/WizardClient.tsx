@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/app/lib/i18n/LanguageProvider";
 import { LanguageToggle } from "@/app/components/LanguageToggle";
@@ -41,6 +41,19 @@ export function WizardClient({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [customOpinion, setCustomOpinion] = useState(initialCustomOpinion ?? "");
+  const opinionDraftKey = `hizjaab_opinion_${responseId}`;
+
+  // The closing remark is typed last, when a stray refresh is most annoying, so
+  // it gets the same draft treatment as the customer form.
+  useEffect(() => {
+    try {
+      const stored = window.sessionStorage.getItem(opinionDraftKey);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (stored) setCustomOpinion((prev) => prev || stored);
+    } catch {
+      // ignore unavailable storage
+    }
+  }, [opinionDraftKey]);
 
   const isReview = step === totalSteps;
   const currentQuestion = !isReview ? questions[step - 1] : null;
@@ -95,6 +108,11 @@ export function WizardClient({
     startTransition(async () => {
       const result = await submitResponse(responseId, customOpinion);
       if (result.ok) {
+        try {
+          window.sessionStorage.removeItem(opinionDraftKey);
+        } catch {
+          // ignore unavailable storage
+        }
         router.push(`/survey/${productId}/complete`);
       } else {
         setError(result.error);
@@ -150,8 +168,9 @@ export function WizardClient({
 
         <ReviewStep questions={questions} answers={answers} onEdit={handleEdit} />
 
-        {/* Closing free-text remark — never required */}
-        <div className="mt-5 rounded-2xl border border-cream-200 bg-cream-050 p-4">
+        {/* Closing free-text remark — never required, but easy to miss at the
+            bottom of a long review list, so it gets an accent border. */}
+        <div className="mt-5 rounded-2xl border-2 border-taupe-400/70 bg-taupe-400/10 p-4">
           <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
             <label htmlFor="customOpinion" className="text-sm font-medium text-ink-900">
               {t("wizard_opinion_title")}
@@ -161,7 +180,14 @@ export function WizardClient({
           <textarea
             id="customOpinion"
             value={customOpinion}
-            onChange={(e) => setCustomOpinion(e.target.value)}
+            onChange={(e) => {
+              setCustomOpinion(e.target.value);
+              try {
+                window.sessionStorage.setItem(opinionDraftKey, e.target.value);
+              } catch {
+                // ignore unavailable storage
+              }
+            }}
             rows={3}
             maxLength={2000}
             placeholder={t("wizard_opinion_placeholder")}

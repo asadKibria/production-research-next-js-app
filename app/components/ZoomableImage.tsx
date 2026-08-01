@@ -25,19 +25,35 @@ export function ZoomableImage({
   src,
   alt,
   coachMark,
+  onZoom,
 }: {
   src: string;
   alt: string;
   /** Optional one-off hint teaching the pinch/double-tap gesture. */
   coachMark?: React.ReactNode;
+  /** Fires the first time the customer actually zooms, so the hint can retire. */
+  onZoom?: () => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
-  const [touched, setTouched] = useState(false);
+  const [zoomed, setZoomed] = useState(false);
   const transformRef = useRef(transform);
   useEffect(() => {
     transformRef.current = transform;
   }, [transform]);
+
+  /*
+    The coach mark used to vanish on the first touch of any kind, which meant a
+    customer who merely rested a finger on the photo lost the hint before
+    reading it. It now only retires once a real zoom has happened.
+  */
+  const zoomedRef = useRef(false);
+  const markZoomed = useCallback(() => {
+    if (zoomedRef.current) return;
+    zoomedRef.current = true;
+    setZoomed(true);
+    onZoom?.();
+  }, [onZoom]);
 
   const [interacting, setInteracting] = useState(false);
   const pointers = useRef(new Map<number, Point>());
@@ -61,7 +77,6 @@ export function ZoomableImage({
   }, []);
 
   function handlePointerDown(e: React.PointerEvent) {
-    setTouched(true);
     (e.target as Element).setPointerCapture(e.pointerId);
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     setInteracting(true);
@@ -96,6 +111,7 @@ export function ZoomableImage({
         Math.max(MIN_SCALE, pinchOrigin.current.scale * ratio),
       );
       const { x, y } = clamp(pinchOrigin.current.transform.x, pinchOrigin.current.transform.y, nextScale);
+      if (nextScale > MIN_SCALE + 0.05) markZoomed();
       setTransform({ x, y, scale: nextScale });
       return;
     }
@@ -133,6 +149,7 @@ export function ZoomableImage({
   }
 
   function handleDoubleClick() {
+    markZoomed();
     setTransform((prev) => (prev.scale > 1 ? { x: 0, y: 0, scale: 1 } : { x: 0, y: 0, scale: 2 }));
   }
 
@@ -142,6 +159,7 @@ export function ZoomableImage({
     const delta = -e.deltaY * 0.0025;
     const nextScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, transformRef.current.scale + delta));
     const { x, y } = clamp(transformRef.current.x, transformRef.current.y, nextScale);
+    if (nextScale > MIN_SCALE + 0.05) markZoomed();
     setTransform({ x, y, scale: nextScale });
   }
 
@@ -175,9 +193,9 @@ export function ZoomableImage({
         />
       </div>
 
-      {/* Disappears the moment the customer touches the photo, so anyone who
-          already knows the gesture never has to dismiss anything. */}
-      {coachMark && !touched ? coachMark : null}
+      {/* Retires the moment the photo is actually zoomed, so anyone who already
+          knows the gesture never has to dismiss anything. */}
+      {coachMark && !zoomed ? coachMark : null}
     </div>
   );
 }

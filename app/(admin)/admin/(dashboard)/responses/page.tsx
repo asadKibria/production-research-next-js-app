@@ -62,6 +62,29 @@ export default async function AdminResponsesPage({
         </div>
       </div>
 
+      {/*
+        The answer drill-down arrives from the insights page and has no field in
+        the filter form, so it gets its own removable chip — otherwise the list
+        would silently show a subset with no visible reason why.
+      */}
+      {flat.answerQuestion && flat.answerOption ? (
+        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-plum-700/30 bg-plum-900/5 px-4 py-3 text-sm">
+          <span className="text-ink-700">এই উত্তর দেওয়া রেসপন্সগুলো:</span>
+          <span className="font-medium text-ink-900">
+            {flat.answerQuestion} → {flat.answerOption}
+          </span>
+          <Link
+            href={`/admin/responses?${buildQueryString(
+              { ...flat, answerQuestion: undefined, answerOption: undefined, page: undefined },
+              {},
+            )}`}
+            className="rounded-full border border-cream-200 bg-cream-050 px-3 py-1 text-xs font-medium text-ink-700 hover:border-plum-700"
+          >
+            ফিল্টার সরান
+          </Link>
+        </div>
+      ) : null}
+
       <ResponseFilterForm products={products} initial={flat} />
 
       <div className="overflow-x-auto rounded-2xl border border-cream-200">

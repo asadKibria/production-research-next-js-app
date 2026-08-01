@@ -72,7 +72,15 @@ export async function getInsightsData() {
     productEntry.responses += 1;
 
     for (const answer of response.answers) {
-      if (typeof answer.rating === "number") {
+      // Only the overall-quality question counts toward the average. Responses
+      // collected before 2026-08-01 also carry a star score on every
+      // choice question; averaging those in mixes "how much do you like the
+      // design" with "which features stood out" and moves the ranking around
+      // for reasons nobody can act on.
+      if (
+        typeof answer.rating === "number" &&
+        answer.productQuestion.questionType === "rating"
+      ) {
         ratingSum += answer.rating;
         ratingCount += 1;
         productEntry.sum += answer.rating;

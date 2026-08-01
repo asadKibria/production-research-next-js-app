@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { getInsightsData } from "@/app/lib/admin-stats";
 import { DashboardCharts } from "./DashboardCharts";
 
@@ -59,8 +60,18 @@ export default async function AdminDashboardPage() {
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1.4fr_1fr]">
         <div className="rounded-2xl border border-cream-200 bg-cream-050 p-5">
-          <h3 className="text-sm font-semibold text-ink-900">প্রোডাক্ট র‍্যাঙ্কিং</h3>
-          <p className="text-xs text-ink-700">গড় রেটিং অনুযায়ী সাজানো</p>
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <div>
+              <h3 className="text-sm font-semibold text-ink-900">প্রোডাক্ট র‍্যাঙ্কিং</h3>
+              <p className="text-xs text-ink-700">গড় রেটিং অনুযায়ী সাজানো</p>
+            </div>
+            <Link
+              href="/admin/insights"
+              className="text-xs font-medium text-plum-900 underline underline-offset-2"
+            >
+              Winner Insights দেখুন →
+            </Link>
+          </div>
 
           {data.productRanking.length === 0 ? (
             <p className="mt-6 text-sm text-ink-700">এখনো কোনো ডেটা নেই</p>

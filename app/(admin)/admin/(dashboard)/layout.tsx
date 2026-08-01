@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 
 const NAV_ITEMS = [
   { href: "/admin", label: "ড্যাশবোর্ড" },
+  { href: "/admin/insights", label: "Winner Insights" },
   { href: "/admin/products", label: "প্রোডাক্ট" },
   { href: "/admin/questions", label: "ডিফল্ট প্রশ্ন" },
   { href: "/admin/responses", label: "রেসপন্স" },

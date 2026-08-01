@@ -14,9 +14,26 @@ export type ResponseFilters = {
   dateFrom?: string;
   dateTo?: string;
   status?: "completed" | "draft" | "all";
+  /**
+   * Drill-down from the insights page: keep only responses that answered this
+   * question with this option. Matched on question *text* rather than id so a
+   * single link spans every product asking the same default question.
+   */
+  answerQuestion?: string;
+  answerOption?: string;
 };
 
 const PAGE_SIZE = 20;
+
+function parseCheckboxAnswer(raw: string | null): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === "string") : [];
+  } catch {
+    return [];
+  }
+}
 
 async function getFilteredResponses(filters: ResponseFilters) {
   const statusFilter = filters.status ?? "completed";
@@ -71,6 +88,25 @@ async function getFilteredResponses(filters: ResponseFilters) {
   }
   if (filters.purchaseIntent) {
     filtered = filtered.filter((e) => e.purchaseIntentAnswer === filters.purchaseIntent);
+  }
+  if (filters.answerQuestion && filters.answerOption) {
+    const question = filters.answerQuestion;
+    const option = filters.answerOption;
+    filtered = filtered.filter((e) =>
+      e.response.answers.some((a) => {
+        if (a.productQuestion.questionText !== question) return false;
+        if (a.productQuestion.questionType === "rating") {
+          // The insights page labels star buckets "4 ★"; compare the number.
+          return typeof a.rating === "number" && `${a.rating} ★` === option;
+        }
+        if (a.productQuestion.questionType === "checkbox") {
+          // One answer holds a JSON array, so "picked this option" is a
+          // membership test, not equality.
+          return parseCheckboxAnswer(a.answerValue).includes(option);
+        }
+        return a.answerValue === option;
+      }),
+    );
   }
 
   return filtered;

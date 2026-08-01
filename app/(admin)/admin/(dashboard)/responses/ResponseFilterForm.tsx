@@ -15,6 +15,18 @@ export function ResponseFilterForm({
 }) {
   return (
     <form method="get" className="grid grid-cols-2 gap-3 rounded-2xl border border-cream-200 bg-cream-050 p-4 sm:grid-cols-4">
+      {/*
+        Carried through as hidden fields so narrowing by district or age keeps
+        the answer drill-down that brought the admin here. Removing it is the
+        chip's job, not this form's.
+      */}
+      {initial.answerQuestion && initial.answerOption ? (
+        <>
+          <input type="hidden" name="answerQuestion" value={initial.answerQuestion} />
+          <input type="hidden" name="answerOption" value={initial.answerOption} />
+        </>
+      ) : null}
+
       <select name="productId" defaultValue={initial.productId ?? ""} className="input">
         <option value="">সব প্রোডাক্ট</option>
         {products.map((p) => (

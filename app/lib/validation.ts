@@ -87,6 +87,9 @@ export const responseFilterSchema = z.object({
   status: z.enum(["completed", "draft", "all"]).optional(),
   dateFrom: z.string().optional(),
   dateTo: z.string().optional(),
+  // Set by the drill-down links on the insights page.
+  answerQuestion: z.string().optional(),
+  answerOption: z.string().optional(),
   page: z.coerce.number().int().min(1).default(1),
 });
 
